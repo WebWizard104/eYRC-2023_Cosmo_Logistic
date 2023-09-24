@@ -263,6 +263,15 @@ class aruco_tf(Node):
         #   ->  HINT: You may use CvBridge to do the same
 
         ############################################
+        
+        try:
+           cv_image = self.bridhge.imgmsg_to_cv2(data, encodein = "passthrough")
+        except CvBridgeError as e:
+           print(e)
+           
+         (rows, col, channels) = cv_image.shape
+        
+        
 
 
     def colorimagecb(self, data):
@@ -283,10 +292,19 @@ class aruco_tf(Node):
         #	->  Use data variable to convert ROS Image message to CV2 Image type
 
         #   ->  HINT:   You may use CvBridge to do the same
+        try:
+           cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+           print(e)
+           
+        (rows, cols, channels) = cv_image.shape
+        
         #               Check if you need any rotation or flipping image as input data maybe different than what you expect to be.
         #               You may use cv2 functions such as 'flip' and 'rotate' to do the same
 
         ############################################
+        
+        
 
 
     def process_image(self):
