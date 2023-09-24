@@ -18,8 +18,8 @@
 *****************************************************************************************
 '''
 
-# Team ID:          [ Team-ID ]
-# Author List:		[ Names of team members worked on this file separated by Comma: Name1, Name2, ... ]
+# Team ID:          [ CL#2919 ]
+# Author List:		[ Bhawna Chaudhary, Arjun S Nair, Ampady B R, Giridhar A P  ]
 # Filename:		    task1a.py
 # Functions:
 #			        [ Comma separated list of functions in this file ]
@@ -62,20 +62,42 @@ def calculate_rectangle_area(coordinates):
 
     # You can remove these variables after reading the instructions. These are just for sample.
 
-    area = None
-    width = None
+    #area = None
+    #width = None
 
     ############ ADD YOUR CODE HERE ############
 
     # INSTRUCTIONS & HELP : 
     #	->  Recevice coordiantes from 'detectMarkers' using cv2.aruco library 
     #       and use these coordinates to calculate area and width of aruco detected.
+    
+    if len(coordinates) == 4:
+    	coordinates = np.array(corners).reshape(-1, 2)
+    	simple_coordinates = np.zeroes_like(coordinates)
+    	center = coordinates.mean(axis = 0)
+    	
+    	for j, vertex in enumerate(coordinates):
+    		if vertex[0] < center[0]:
+    			if vertex[1] < center[1]:
+    				simple_coordinates[0] = vertex
+    			else :
+    			     simple_coordinates[3] = vertex
+    			     
+    			     
+    	        else :
+    	            if vertex[1] < center[1]:
+    	            	simple_coordinates[1] = vertex
+		    
+		    else:
+		        simple_coordinates[2] = vertex
     #	->  Extract values from input set of 4 (x,y) coordinates 
     #       and formulate width and height of aruco detected to return 'area' and 'width'.
+   
+               width = np.linalg.norm(simple_coordinates[0] - simple_coordinates[1])
+               height = np.linalg.norm(simple_cooordinates[1] - simple_coordinates[2])
+   	       area = width * height
 
-    ############################################
-
-    return area, width
+    return area, width, center
 
 
 def detect_aruco(image):
@@ -115,39 +137,73 @@ def detect_aruco(image):
     size_of_aruco_m = 0.15
 
     # You can remove these variables after reading the instructions. These are just for sample.
-    center_aruco_list = []
+    #center_aruco_list = []
     distance_from_rgb_list = []
     angle_aruco_list = []
-    width_aruco_list = []
-    ids = []
+    #width_aruco_list = []
+    #area_aruco_list = []
+    marker_ids = []
+    marker_corners = []
+    rejected_candidates = []
  
     ############ ADD YOUR CODE HERE ############
 
     # INSTRUCTIONS & HELP : 
 
     #	->  Convert input BGR image to GRAYSCALE for aruco detection
-
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     #   ->  Use these aruco parameters-
     #       ->  Dictionary: 4x4_50 (4x4 only until 50 aruco IDs)
-
+    aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+    aruco_params = cv2.aruco.DetectorParameters_create()
+ 
     #   ->  Detect aruco marker in the image and store 'corners' and 'ids'
     #       ->  HINT: Handle cases for empty markers detection. 
-
+    detector = cv2.aruco.ArucoDetector_create(aruco_dict, aruco_params)
+    marker_corners, marker_ids, rejected_candidates = detector.detectMarkers(gray_image)
+    
     #   ->  Draw detected marker on the image frame which will be shown later
-
+    
+    if marker_ids is not None:
+  	input_image_with_markers = cv2.aruco.drawDetectedMarkers(image, marker_corners, marker_ids)
+    
+  
+    	#cv2.imshow('Detected Markers', input_image_with_markers)
+    	#cv2.waitKey(0)
+   	#cv2.destroyAllWindows()
+   	
+   	
     #   ->  Loop over each marker ID detected in frame and calculate area using function defined above (calculate_rectangle_area(coordinates))
-
-    #   ->  Remove tags which are far away from arm's reach positon based on some threshold defined
+    
+    if len(marker_ids) > 0 :
+    	for i in range(0, len(marker_ids)):
+    	   	marker_area, marker_width, marker_center =  calculate_rectangle_area(marker_corners)
+    	   	area_aruco_list.append(marker_area)
+    	   	width_aruco_list.append(marker_width)
+    	   	center_aruco_list.append(marker_center)
+    	
+    #   ->  Remove tags which are far away from arm's reach positon based on some threshold defined         
 
     #   ->  Calculate center points aruco list using math and distance from RGB camera using pose estimation of aruco marker
     #       ->  HINT: You may use numpy for center points and 'estimatePoseSingleMarkers' from cv2 aruco library for pose estimation
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(marker_corners[i], 0.02, cam_mat, dist_mat)
+                
+                rotation_matrix, _ = cv2.Rodrigues(rvec)
+                roll, pitch, yaw = cv2.RQDecomp3x3(rotation_matrix)
+                roll_degrees = np.degrees(roll)
+                pitch_degrees = np.degrees(pitch)
+                yaw_degrees = np.degrees(yaw)
+                
+                angle_aruco_list.append((roll_degrees, pitch_degrees, yaw_degrees))
 
+         
     #   ->  Draw frame axes from coordinates received using pose estimation
     #       ->  HINT: You may use 'cv2.drawFrameAxes'
-
-    ############################################
-
-    return center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, ids
+                
+                cv2.aruco.drawAxis(image, cam_mat, dist_mat, rvec, tvec, 0.01)
+                
+  
+    return center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, marker_ids
 
 
 ##################### CLASS DEFINITION #######################
