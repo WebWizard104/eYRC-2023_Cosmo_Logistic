@@ -47,16 +47,17 @@ from sensor_msgs.msg import CompressedImage, Image
 ##################### FUNCTION DEFINITIONS #######################
 
 def calculate_rectangle_area(coordinates):
-    '''
-    Description:    Function to calculate area or detected aruco
 
-    Args:
-        coordinates (list):     coordinates of detected aruco (4 set of (x,y) coordinates)
-
-    Returns:
-        area        (float):    area of detected aruco
-        width       (float):    width of detected aruco
-    '''
+    
+    # Description:    Function to calculate area or detected aruco
+# 
+    # Args:
+        # coordinates (list):     coordinates of detected aruco (4 set of (x,y) coordinates)
+# 
+    # Returns:
+        # area        (float):    area of detected aruco
+        # width       (float):    width of detected aruco
+    
 
     ############ Function VARIABLES ############
 
@@ -71,36 +72,36 @@ def calculate_rectangle_area(coordinates):
     #	->  Recevice coordiantes from 'detectMarkers' using cv2.aruco library 
     #       and use these coordinates to calculate area and width of aruco detected.
     
-    if len(coordinates) == 4:
-        coordinates = np.array(coordinates).reshape(-1, 2)
-        simple_coordinates = np.zeros_like(coordinates)
-        center = coordinates.mean(axis = 0)
-    	
-        for j, vertex in enumerate(coordinates):
+     if len(coordinates) == 4:
+         coordinates = np.array(coordinates).reshape(-1, 2)
+         simple_coordinates = np.zeros_like(coordinates)
+         center = coordinates.mean(axis = 0)
+    	 
+         for j, vertex in enumerate(coordinates):
             if vertex[0] < center[0]:
                 if vertex[1] < center[1]:
-                    simple_coordinates[0] = vertex
+                     simple_coordinates[0] = vertex
                 else:
                     simple_coordinates[3] = vertex
-            
-                       
-    		    
-    			     
-    			     
+            # 
+                    #    
+    		    # 
+    			    #  
+    			    #  
             else :
                 if vertex[1] < center[1]:
                     simple_coordinates[1] = vertex
-		    
+		    # 
                 else :
                     simple_coordinates[2] = vertex
-                        
-    #	->  Extract values from input set of 4 (x,y) coordinates 
-    #       and formulate width and height of aruco detected to return 'area' and 'width'.
-   
+                        # 
+    	# ->  Extract values from input set of 4 (x,y) coordinates 
+        #   and formulate width and height of aruco detected to return 'area' and 'width'.
+#    
             width = np.linalg.norm(simple_coordinates[0] - simple_coordinates[1])
             height = np.linalg.norm(simple_coordinates[1] - simple_coordinates[2])
             area = width * height
- 
+#  
             return area, width, center
 
 
@@ -208,7 +209,7 @@ def detect_aruco(image):
                 cv2.aruco.drawAxis(image, cam_mat, dist_mat, rvec, tvec, 0.01)
                 
   
-    return center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, marker_ids
+    return center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, marker_ids, input_image_with_markers
 
 
 ##################### CLASS DEFINITION #######################
@@ -270,11 +271,11 @@ class aruco_tf(Node):
         ############################################
         
         try:
-           cv_image = self.bridge.imgmsg_to_cv2(data, encodein = "passthrough")
+           self.depth_image = self.bridge.imgmsg_to_cv2(data, encodein = "passthrough")
         except CvBridgeError as e:
            print(e)
            
-        (rows, col, channels) = cv_image.shape
+       
         
         
 
@@ -298,11 +299,10 @@ class aruco_tf(Node):
 
         #   ->  HINT:   You may use CvBridge to do the same
         try:
-           cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+           self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
            print(e)
-           
-        (rows, cols, channels) = cv_image.shape
+       
         
         #               Check if you need any rotation or flipping image as input data maybe different than what you expect to be.
         #               You may use cv2 functions such as 'flip' and 'rotate' to do the same
@@ -339,7 +339,7 @@ class aruco_tf(Node):
         # INSTRUCTIONS & HELP : 
 
         #	->  Get aruco center, distance from rgb, angle, width and ids list from 'detect_aruco_center' defined above
-        center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, marker_ids = detect_aruco(image)
+        center_aruco_list, distance_from_rgb_list, angle_aruco_list, width_aruco_list, marker_ids,input_image_with_markers = detect_aruco(image)
         #   ->  Loop over detected box ids received to calculate position and orientation transform to publish TF 
         for j, id in enumerate(marker_ids) :
 
@@ -381,7 +381,7 @@ class aruco_tf(Node):
 
         #   ->  Now, mark the center points on image frame using cX and cY variables with help of 'cv2.cirle' function 
 
-            circle_marked_image = cv2.circle(image, (cX,cY), 0, (0, 0 , 255), -1)
+            circle_marked_image = cv2.circle(input_image_with_markers, (cX,cY), 0, (0, 0 , 255), -1)
 
         #   ->  Here, till now you receive coordinates from camera_link to aruco marker center position. 
         #       So, publish this transform w.r.t. camera_link using Geometry Message - TransformStamped 
@@ -391,13 +391,13 @@ class aruco_tf(Node):
         #           child_frame_id = 'cam_<marker_id>'          Ex: cam_20, where 20 is aruco marker ID
 
 
-            marker_id = marker_ids[j]       
+            marker_id = int(marker_ids[j])       
             t = TransformStamped()
             t.header.stamp = self.get_clock().now().to_msg()                        # select transform time stamp as current clock time
         # frame IDs
 
             t.header.frame_id = 'camera_link'                                         # parent frame link with whom to send transform
-            t.child_frame_id = 'cam_<marker_id>'                                              # child frame link from where to send transfrom
+            t.child_frame_id = f'cam_{marker_id}'                                             # child frame link from where to send transfrom
                                                
 
             t.transform.translation.x = x
@@ -408,6 +408,7 @@ class aruco_tf(Node):
             t.transform.rotation.y = quaternion[1]
             t.transform.rotation.z = quaternion[2]
             t.transform.rotation.w = quaternion[3]
+
             self.tf_broadcaster.sendTransform(t) 
 
 
@@ -419,8 +420,29 @@ class aruco_tf(Node):
         #           frame_id = 'base_link'
         #           child_frame_id = 'obj_<marker_id>'          Ex: obj_20, where 20 is aruco marker ID
 
+        try:
+            # Get the transformation from 'camera_link' to 'cam_<marker_id>'
+            transform_camera_to_marker = self.tf_buffer.lookup_transform('camera_link', f'cam_{marker_id}', rclpy.time.Time())
+
+            # Calculate the transformation from 'base_link' to 'obj_<marker_id>' using the transformation received above
+            transform_base_to_obj = transform_camera_to_marker.transform
+
+            # Modify the frame IDs to match your naming convention
+            transform_base_to_obj.header.frame_id = 'base_link'
+            transform_base_to_obj.child_frame_id = f'obj_{marker_id}'
+
+            # Publish the transformation
+            self.tf_broadcaster.sendTransform(transform_base_to_obj)
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            self.get_logger().warn("TF lookup failed")
+
+
         #   ->  At last show cv2 image window having detected markers drawn and center points located using 'cv2.imshow' function.
         #       Refer MD book on portal for sample image -> https://portal.e-yantra.org/
+
+            cv2.imshow('Detected Markers', circle_marked_image)
+            cv2.waitKey(0)
 
         #   ->  NOTE:   The Z axis of TF should be pointing inside the box (Purpose of this will be known in task 1B)
         #               Also, auto eval script will be judging angular difference aswell. So, make sure that Z axis is inside the box (Refer sample images on Portal - MD book)
