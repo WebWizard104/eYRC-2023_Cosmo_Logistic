@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Example of moving to a pose goal.
-`ros2 run pymoveit2 ex_pose_goal.py --ros-args -p position:="[0.25, 0.0, 1.0]" -p quat_xyzw:="[0.0, 0.0, 0.0, 1.0]" -p cartesian:=False`
+`ros2 run pymoveit2 ex_pose_goal.py --ros-args -p position:="[0.35, 0.1, 0.68]" -p quat_xyzw:="[0.5, 0.5, 0.5, 0.5]" -p position:="[-0.37, 0.12, 0.397] " -p quat_xyzw:="[0.0, 0.0, 0.0, 1.0]" -p position:="[0.194, -0.43, 0.701]" -p quat_xyzw:="[0.0, 0.0, 0.0, 1.0]" -p cartesian:=False`
 """
 
 from threading import Thread
@@ -21,8 +21,18 @@ def main():
     node = Node("ex_pose_goal")
 
     # Declare parameters for position and orientation
-    node.declare_parameter("position", [0.35, 0.10, 0.68])
+    node.declare_parameter("position", [0.35, 0.10, 0.68]) #P1 -pick position1 
     node.declare_parameter("quat_xyzw", [0.5, 0.5, 0.5, 0.5])
+    
+    node.declare_parameter("position2", [0.35, 0.10, 0.68]) #D1 - Drop position1
+    node.declare_parameter("quat_xyzw2", [0.5, 0.5, 0.5, 0.5])
+    
+    node.declare_parameter("position3", [0.35, 0.10, 0.68])  #P2 - pick position2
+    node.declare_parameter("quat_xyzw3", [0.5, 0.5, 0.5, 0.5])
+
+    node.declare_parameter("position4", [0.35, 0.10, 0.68]) #D2 - Drop position2
+    node.declare_parameter("quat_xyzw4", [0.5, 0.5, 0.5, 0.5])
+    
     node.declare_parameter("cartesian", False)
 
     # Create callback group that allows execution of callbacks in parallel without restrictions
@@ -47,13 +57,41 @@ def main():
     # Get parameters
     position = node.get_parameter("position").get_parameter_value().double_array_value
     quat_xyzw = node.get_parameter("quat_xyzw").get_parameter_value().double_array_value
+    
+    position2 = node.get_parameter("position2").get_parameter_value().double_array_value
+    quat_xyzw2 = node.get_parameter("quat_xyzw2").get_parameter_value().double_array_value
     cartesian = node.get_parameter("cartesian").get_parameter_value().bool_value
+    
+    position3 = node.get_parameter("position3").get_parameter_value().double_array_value
+    quat_xyzw3 = node.get_parameter("quat_xyzw3").get_parameter_value().double_array_value
 
+    position4 = node.get_parameter("position4").get_parameter_value().double_array_value
+    quat_xyzw4 = node.get_parameter("quat_xyzw4").get_parameter_value().double_array_value 
+
+    cartesian = node.get_parameter("cartesian").get_parameter_value().bool_value
     # Move to pose
     node.get_logger().info(
         f"Moving to {{position: {list(position)}, quat_xyzw: {list(quat_xyzw)}}}"
     )
     moveit2.move_to_pose(position=position, quat_xyzw=quat_xyzw, cartesian=cartesian)
+    moveit2.wait_until_executed()
+    
+    node.get_logger().info(
+        f"Moving to {{position: {list(position2)}, quat_xyzw: {list(quat_xyzw2)}}}"
+    )
+    moveit2.move_to_pose(position=position2, quat_xyzw=quat_xyzw2, cartesian=cartesian)
+    moveit2.wait_until_executed()
+    
+    node.get_logger().info(
+        f"Moving to {{position: {list(position3)}, quat_xyzw: {list(quat_xyzw3)}}}"
+    )
+    moveit2.move_to_pose(position=position3, quat_xyzw=quat_xyzw3, cartesian=cartesian)
+    moveit2.wait_until_executed()
+
+    node.get_logger().info(
+        f"Moving to {{position: {list(position4)}, quat_xyzw: {list(quat_xyzw4)}}}"
+    )
+    moveit2.move_to_pose(position=position4, quat_xyzw=quat_xyzw4, cartesian=cartesian)
     moveit2.wait_until_executed()
 
     rclpy.shutdown()
